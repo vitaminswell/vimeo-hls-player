@@ -31,6 +31,7 @@ Add this script to your Webflow project:
 - Native HLS support for Safari
 - Vimeo video integration
 - **Automatic poster image fetching from Vimeo** (new in v1.1.0)
+- **Auto-pause when video scrolls out of view** (new)
 - Auto-hide controls
 - Buffer visualization
 - Keyboard shortcuts support
@@ -142,6 +143,27 @@ const player = new VimeoHLSPlayer('#video-player', {
 
 The player automatically selects the best available thumbnail quality (1280p, 960p, 640p, or base).
 
+### Example 6: Auto-Pause When Out of View (New)
+
+By default, the video will automatically pause when it scrolls out of the viewport. This improves user experience and performance:
+
+```javascript
+// Auto-pause enabled by default
+const player = new VimeoHLSPlayer('#video-player', {
+  vimeoId: '76979871',
+  controls: true
+  // pauseWhenOutOfView: true (default)
+});
+
+// Disable auto-pause if needed
+const player2 = new VimeoHLSPlayer('#video-player-2', {
+  vimeoId: '76979871',
+  pauseWhenOutOfView: false  // Video continues playing when scrolled out of view
+});
+```
+
+The video pauses when less than 50% is visible in the viewport. The video does not automatically resume playing when scrolled back into view to avoid unexpected playback.
+
 ## Configuration Options
 
 | Option | Type | Default | Description |
@@ -154,6 +176,7 @@ The player automatically selects the best available thumbnail quality (1280p, 96
 | `controls` | boolean | true | Show custom controls |
 | `aspectRatio` | string | '16:9' | Video aspect ratio (e.g., '16:9', '4:3', '21:9') |
 | `poster` | string | null | Custom poster image URL (if not set, automatically fetched from Vimeo) |
+| `pauseWhenOutOfView` | boolean | true | Automatically pause video when it scrolls out of view |
 
 ## API Methods
 

@@ -26,12 +26,15 @@ class VimeoHLSPlayer {
       controls: true,
       aspectRatio: '16:9',
       poster: null,
+      pauseWhenOutOfView: true,
       ...options
     };
 
     this.player = null;
     this.controls = null;
     this.videoElement = null;
+    this.intersectionObserver = null;
+    this.wasPlayingBeforeHidden = false;
 
     this.initialize();
   }
@@ -64,6 +67,11 @@ class VimeoHLSPlayer {
     this.player.on('error', (error) => {
       this.showError('Failed to load video', error.message || 'Unknown error');
     });
+
+    // Setup visibility observer to pause when out of view
+    if (this.options.pauseWhenOutOfView) {
+      this.setupVisibilityObserver();
+    }
   }
 
   setupContainer() {
@@ -92,6 +100,35 @@ class VimeoHLSPlayer {
     }
 
     this.container.appendChild(this.videoElement);
+  }
+
+  /**
+   * Setup Intersection Observer to pause video when out of view
+   */
+  setupVisibilityObserver() {
+    const options = {
+      root: null, // viewport
+      rootMargin: '0px',
+      threshold: 0.5 // 50% of the video must be visible
+    };
+
+    this.intersectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) {
+          // Video is out of view
+          if (!this.videoElement.paused) {
+            this.wasPlayingBeforeHidden = true;
+            this.pause();
+          }
+        } else {
+          // Video is in view - optionally resume playing
+          // We don't auto-resume to avoid unexpected playback
+          this.wasPlayingBeforeHidden = false;
+        }
+      });
+    }, options);
+
+    this.intersectionObserver.observe(this.container);
   }
 
   /**
@@ -241,6 +278,10 @@ class VimeoHLSPlayer {
   }
 
   destroy() {
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect();
+      this.intersectionObserver = null;
+    }
     if (this.controls) {
       this.controls.destroy();
     }
