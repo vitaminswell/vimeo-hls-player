@@ -8,6 +8,7 @@ export class VideoControls {
     this.controlsElement = null;
     this.isHiding = false;
     this.hideTimeout = null;
+    this.hoverTimeout = null;
 
     this.createControls();
     this.attachEventListeners();
@@ -17,20 +18,28 @@ export class VideoControls {
     const controls = document.createElement('div');
     controls.className = 'vimeo-hls-controls';
     controls.innerHTML = `
+      <div class="vimeo-hls-placeholder"></div>
+      <div class="vimeo-hls-dark"></div>
+
       <div class="vimeo-hls-controls-overlay">
-        <button class="vimeo-hls-play-large" aria-label="Play">
-          <svg viewBox="0 0 24 24" fill="currentColor">
+        <button class="vimeo-hls-playpause" aria-label="Play">
+          <svg class="vimeo-hls-play-svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z"/>
+          </svg>
+          <svg class="vimeo-hls-pause-svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
           </svg>
         </button>
       </div>
 
-      <div class="vimeo-hls-controls-bottom">
-        <div class="vimeo-hls-progress-container">
+      <div class="vimeo-hls-loading"></div>
+
+      <div class="vimeo-hls-interface">
+        <div class="vimeo-hls-timeline">
           <div class="vimeo-hls-progress-buffered"></div>
           <div class="vimeo-hls-progress-bar">
             <div class="vimeo-hls-progress-filled"></div>
-            <div class="vimeo-hls-progress-handle"></div>
+            <div class="vimeo-hls-timeline-handle"></div>
           </div>
         </div>
 
@@ -47,10 +56,10 @@ export class VideoControls {
 
             <div class="vimeo-hls-volume-container">
               <button class="vimeo-hls-volume-btn" aria-label="Mute">
-                <svg class="volume-high" viewBox="0 0 24 24" fill="currentColor">
+                <svg class="vimeo-hls-volume-up-svg" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                 </svg>
-                <svg class="volume-muted" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                <svg class="vimeo-hls-volume-mute-svg" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
                 </svg>
               </button>
@@ -71,10 +80,10 @@ export class VideoControls {
 
           <div class="vimeo-hls-controls-right">
             <button class="vimeo-hls-fullscreen-btn" aria-label="Fullscreen">
-              <svg class="fullscreen-enter" viewBox="0 0 24 24" fill="currentColor">
+              <svg class="vimeo-hls-fullscreen-scale-svg" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
               </svg>
-              <svg class="fullscreen-exit" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+              <svg class="vimeo-hls-fullscreen-shrink-svg" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
               </svg>
             </button>
@@ -87,43 +96,68 @@ export class VideoControls {
     this.controlsElement = controls;
 
     // Get references to control elements
+    this.placeholder = controls.querySelector('.vimeo-hls-placeholder');
+    this.playPauseBtn = controls.querySelector('.vimeo-hls-playpause');
     this.playBtn = controls.querySelector('.vimeo-hls-play-btn');
-    this.playLargeBtn = controls.querySelector('.vimeo-hls-play-large');
     this.playIcon = controls.querySelector('.play-icon');
     this.pauseIcon = controls.querySelector('.pause-icon');
     this.progressBar = controls.querySelector('.vimeo-hls-progress-bar');
     this.progressFilled = controls.querySelector('.vimeo-hls-progress-filled');
     this.progressBuffered = controls.querySelector('.vimeo-hls-progress-buffered');
-    this.progressHandle = controls.querySelector('.vimeo-hls-progress-handle');
+    this.progressHandle = controls.querySelector('.vimeo-hls-timeline-handle');
     this.volumeBtn = controls.querySelector('.vimeo-hls-volume-btn');
-    this.volumeHigh = controls.querySelector('.volume-high');
-    this.volumeMuted = controls.querySelector('.volume-muted');
     this.volumeSlider = controls.querySelector('.vimeo-hls-volume-slider');
     this.volumeFilled = controls.querySelector('.vimeo-hls-volume-filled');
     this.timeCurrent = controls.querySelector('.vimeo-hls-time-current');
     this.timeDuration = controls.querySelector('.vimeo-hls-time-duration');
     this.fullscreenBtn = controls.querySelector('.vimeo-hls-fullscreen-btn');
-    this.fullscreenEnter = controls.querySelector('.fullscreen-enter');
-    this.fullscreenExit = controls.querySelector('.fullscreen-exit');
   }
 
   attachEventListeners() {
     // Play/Pause
     this.playBtn.addEventListener('click', () => this.player.togglePlay());
-    this.playLargeBtn.addEventListener('click', () => this.player.togglePlay());
+    this.playPauseBtn.addEventListener('click', () => {
+      this.player.togglePlay();
+      this.updatePlayerStatus();
+    });
     this.player.video.addEventListener('click', () => this.player.togglePlay());
 
     // Update play button state
-    this.player.on('play', () => this.updatePlayButton(true));
-    this.player.on('pause', () => this.updatePlayButton(false));
-    this.player.on('ended', () => this.updatePlayButton(false));
+    this.player.on('play', () => {
+      this.updatePlayButton(true);
+      this.updatePlayerStatus('playing');
+      this.setPlayerActivated(true);
+      this.startAutoHide();
+    });
+    this.player.on('pause', () => {
+      this.updatePlayButton(false);
+      this.updatePlayerStatus('paused');
+      this.stopAutoHide();
+    });
+    this.player.on('ended', () => {
+      this.updatePlayButton(false);
+      this.updatePlayerStatus('paused');
+    });
+    this.player.on('waiting', () => {
+      this.updatePlayerStatus('loading');
+    });
+    this.player.on('canplay', () => {
+      if (!this.player.video.paused) {
+        this.updatePlayerStatus('playing');
+      } else {
+        this.updatePlayerStatus('paused');
+      }
+    });
+    this.player.on('loadedmetadata', () => {
+      this.updatePlayerStatus('ready');
+      this.updateDuration();
+    });
 
     // Progress bar
     this.progressBar.addEventListener('click', (e) => this.handleProgressClick(e));
     this.progressBar.addEventListener('mousedown', (e) => this.handleProgressDragStart(e));
 
     this.player.on('timeupdate', () => this.updateProgress());
-    this.player.on('loadedmetadata', () => this.updateDuration());
 
     // Volume
     this.volumeBtn.addEventListener('click', () => {
@@ -138,22 +172,36 @@ export class VideoControls {
     document.addEventListener('fullscreenchange', () => this.updateFullscreenButton());
     document.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButton());
 
-    // Auto-hide controls
-    this.container.addEventListener('mousemove', () => this.showControls());
-    this.container.addEventListener('mouseleave', () => this.hideControls());
-    this.player.on('play', () => this.startAutoHide());
-    this.player.on('pause', () => this.stopAutoHide());
+    // Hover state management
+    this.container.addEventListener('mouseenter', () => this.setPlayerHover(true));
+    this.container.addEventListener('mousemove', () => {
+      this.setPlayerHover(true);
+      this.startAutoHide();
+    });
+    this.container.addEventListener('mouseleave', () => {
+      this.setPlayerHover(false);
+      this.stopAutoHide();
+    });
+
+    // Set poster as placeholder if available
+    if (this.player.video.poster) {
+      this.placeholder.style.backgroundImage = `url(${this.player.video.poster})`;
+    }
+
+    // Initialize player status
+    this.updatePlayerStatus('idle');
+    this.setPlayerActivated(false);
+    this.updateVolumeButton();
+    this.updateFullscreenButton();
   }
 
   updatePlayButton(isPlaying) {
     if (isPlaying) {
       this.playIcon.style.display = 'none';
       this.pauseIcon.style.display = 'block';
-      this.playLargeBtn.style.display = 'none';
     } else {
       this.playIcon.style.display = 'block';
       this.pauseIcon.style.display = 'none';
-      this.playLargeBtn.style.display = 'flex';
     }
   }
 
@@ -180,8 +228,11 @@ export class VideoControls {
   }
 
   handleProgressDragStart(e) {
+    this.container.setAttribute('data-timeline-drag', 'true');
+
     const onMouseMove = (e) => this.handleProgressClick(e);
     const onMouseUp = () => {
+      this.container.setAttribute('data-timeline-drag', 'false');
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
@@ -191,15 +242,9 @@ export class VideoControls {
   }
 
   updateVolumeButton() {
-    if (this.player.video.muted || this.player.getVolume() === 0) {
-      this.volumeHigh.style.display = 'none';
-      this.volumeMuted.style.display = 'block';
-      this.volumeFilled.style.height = '0%';
-    } else {
-      this.volumeHigh.style.display = 'block';
-      this.volumeMuted.style.display = 'none';
-      this.volumeFilled.style.height = `${this.player.getVolume() * 100}%`;
-    }
+    const isMuted = this.player.video.muted || this.player.getVolume() === 0;
+    this.container.setAttribute('data-player-muted', isMuted ? 'true' : 'false');
+    this.volumeFilled.style.height = isMuted ? '0%' : `${this.player.getVolume() * 100}%`;
   }
 
   handleVolumeClick(e) {
@@ -211,30 +256,41 @@ export class VideoControls {
   }
 
   updateFullscreenButton() {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      this.fullscreenEnter.style.display = 'none';
-      this.fullscreenExit.style.display = 'block';
-    } else {
-      this.fullscreenEnter.style.display = 'block';
-      this.fullscreenExit.style.display = 'none';
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    this.container.setAttribute('data-player-fullscreen', isFullscreen ? 'true' : 'false');
+  }
+
+  updatePlayerStatus(status) {
+    this.container.setAttribute('data-player-status', status);
+  }
+
+  setPlayerActivated(activated) {
+    this.container.setAttribute('data-player-activated', activated ? 'true' : 'false');
+  }
+
+  setPlayerHover(active) {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
     }
-  }
 
-  showControls() {
-    this.container.classList.add('vimeo-hls-controls-visible');
-    this.stopAutoHide();
-    this.startAutoHide();
-  }
-
-  hideControls() {
-    if (!this.player.video.paused) {
-      this.container.classList.remove('vimeo-hls-controls-visible');
+    if (active) {
+      this.container.setAttribute('data-player-hover', 'active');
+    } else {
+      // Delay removing hover state slightly to avoid flickering
+      this.hoverTimeout = setTimeout(() => {
+        this.container.setAttribute('data-player-hover', 'inactive');
+      }, 100);
     }
   }
 
   startAutoHide() {
     this.stopAutoHide();
-    this.hideTimeout = setTimeout(() => this.hideControls(), 3000);
+    if (!this.player.video.paused) {
+      this.hideTimeout = setTimeout(() => {
+        this.setPlayerHover(false);
+      }, 3000);
+    }
   }
 
   stopAutoHide() {
@@ -262,5 +318,8 @@ export class VideoControls {
       this.controlsElement.remove();
     }
     this.stopAutoHide();
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+    }
   }
 }

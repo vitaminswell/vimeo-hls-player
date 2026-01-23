@@ -77,6 +77,15 @@ class VimeoHLSPlayer {
   setupContainer() {
     this.container.classList.add('vimeo-hls-player');
 
+    // Initialize data attributes
+    this.container.setAttribute('data-vimeo-player-init', 'true');
+    this.container.setAttribute('data-player-status', 'idle');
+    this.container.setAttribute('data-player-activated', 'false');
+    this.container.setAttribute('data-player-hover', 'inactive');
+    this.container.setAttribute('data-player-fullscreen', 'false');
+    this.container.setAttribute('data-player-muted', 'false');
+    this.container.setAttribute('data-timeline-drag', 'false');
+
     // Set aspect ratio
     if (this.options.aspectRatio) {
       const [width, height] = this.options.aspectRatio.split(':').map(Number);
@@ -137,14 +146,16 @@ class VimeoHLSPlayer {
    */
   async loadHLS(hlsUrl) {
     try {
-      this.container.classList.add('loading');
+      this.container.setAttribute('data-player-status', 'loading');
       this.player.loadSource(hlsUrl);
 
       this.player.on('loadedmetadata', () => {
-        this.container.classList.remove('loading');
+        if (this.container.getAttribute('data-player-status') === 'loading') {
+          this.container.setAttribute('data-player-status', 'ready');
+        }
       });
     } catch (error) {
-      this.container.classList.remove('loading');
+      this.container.setAttribute('data-player-status', 'idle');
       this.showError('Failed to load HLS stream', error.message);
     }
   }
@@ -156,7 +167,7 @@ class VimeoHLSPlayer {
    */
   async loadVimeo(vimeoId, accessToken = null) {
     try {
-      this.container.classList.add('loading');
+      this.container.setAttribute('data-player-status', 'loading');
 
       // Extract video ID if URL provided
       const videoId = VimeoAPI.extractVideoId(vimeoId) || vimeoId;
@@ -179,7 +190,9 @@ class VimeoHLSPlayer {
         }
 
         await this.loadHLS(videoData.hlsUrl);
-        this.container.classList.remove('loading');
+        if (this.container.getAttribute('data-player-status') === 'loading') {
+          this.container.setAttribute('data-player-status', 'ready');
+        }
         return;
       } catch (error) {
         // Check if it's a CORS error
@@ -212,9 +225,11 @@ class VimeoHLSPlayer {
         throw new Error('A Vimeo access token is required. Please add vimeoAccessToken option to your player configuration. Get one at https://developer.vimeo.com/apps');
       }
 
-      this.container.classList.remove('loading');
+      if (this.container.getAttribute('data-player-status') === 'loading') {
+        this.container.setAttribute('data-player-status', 'ready');
+      }
     } catch (error) {
-      this.container.classList.remove('loading');
+      this.container.setAttribute('data-player-status', 'idle');
       this.showError('Failed to load Vimeo video', error.message);
     }
   }
@@ -292,6 +307,15 @@ class VimeoHLSPlayer {
       this.videoElement.remove();
     }
     this.container.classList.remove('vimeo-hls-player');
+
+    // Clean up data attributes
+    this.container.removeAttribute('data-vimeo-player-init');
+    this.container.removeAttribute('data-player-status');
+    this.container.removeAttribute('data-player-activated');
+    this.container.removeAttribute('data-player-hover');
+    this.container.removeAttribute('data-player-fullscreen');
+    this.container.removeAttribute('data-player-muted');
+    this.container.removeAttribute('data-timeline-drag');
   }
 }
 
